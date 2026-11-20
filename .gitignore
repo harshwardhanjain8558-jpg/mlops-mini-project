@@ -1,0 +1,6 @@
+data/raw/train.csv
+data/raw/later.csv
+.venv/
+mlruns/
+mlartifacts/
+__pycache__/
