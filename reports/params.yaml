@@ -1,0 +1,11 @@
+data:
+  train: data/raw/train.csv
+  later: data/raw/later.csv
+  holdout: data/raw/holdout_features.csv
+target: fare_rs
+features: [distance_km, wait_min, passengers, hour, luggage_bags, fuel_price_rs, booking, zone]
+typo_threshold: 1000
+unit_fix: {column: distance_km, zone: Outskirts, factor: 1000}
+mlflow:
+  experiment: mp289-fare
+  model_name: mp289-fare-model
