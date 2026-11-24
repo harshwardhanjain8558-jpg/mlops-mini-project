@@ -1,4 +1,5 @@
 import os
+import time
 from contextlib import asynccontextmanager
 
 import joblib
@@ -7,7 +8,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
 from mp289.data import ROOT, clean_common, load_params
+from mp289.logs import get_logger
 
+log = get_logger("mp289.api")
 PARAMS = load_params()
 FEATURES = PARAMS["features"]
 MODEL_PATH = ROOT / os.getenv("MODEL_PATH", "models/model.joblib")
@@ -35,6 +38,7 @@ async def lifespan(app: FastAPI):
     global model
     if model is None and MODEL_PATH.exists():
         model = joblib.load(MODEL_PATH)
+    log.info("startup", extra={"fields": {"model_loaded": model is not None}})
     yield
 
 
@@ -50,6 +54,13 @@ def health():
 def predict(ride: Ride):
     if model is None:
         raise HTTPException(status_code=503, detail="model not loaded")
+    start = time.perf_counter()
     df = clean_common(pd.DataFrame([ride.model_dump()]))
-    fare = float(model.predict(df[FEATURES])[0])
-    return {"fare_rs": round(fare, 2)}
+    fare = round(float(model.predict(df[FEATURES])[0]), 2)
+    # ride features only: no rider name, phone or location is ever logged
+    log.info("prediction", extra={"fields": {
+        "input": ride.model_dump(),
+        "fare_rs": fare,
+        "latency_ms": round((time.perf_counter() - start) * 1000, 2),
+    }})
+    return {"fare_rs": fare}

@@ -1,3 +1,7 @@
+import io
+import json
+import logging
+
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
@@ -5,6 +9,7 @@ from sklearn.linear_model import Ridge
 
 import app.main as main
 from mp289.data import clean_booking
+from mp289.logs import JsonFormatter
 from mp289.train import build_pipeline
 
 GOOD = {
@@ -60,6 +65,24 @@ def test_messy_booking_spelling_is_cleaned(client):
     a = client.post("/predict", json={**GOOD, "booking": "Street "}).json()
     b = client.post("/predict", json={**GOOD, "booking": "street"}).json()
     assert a == b
+
+
+def test_prediction_writes_one_json_log_line(client):
+    buf = io.StringIO()
+    handler = logging.StreamHandler(buf)
+    handler.setFormatter(JsonFormatter())
+    main.log.addHandler(handler)
+    try:
+        fare = client.post("/predict", json=GOOD).json()["fare_rs"]
+    finally:
+        main.log.removeHandler(handler)
+
+    lines = buf.getvalue().strip().splitlines()
+    assert len(lines) == 1
+    entry = json.loads(lines[0])
+    assert entry["message"] == "prediction"
+    assert entry["fare_rs"] == fare
+    assert entry["input"] == GOOD
 
 
 def test_clean_booking():
