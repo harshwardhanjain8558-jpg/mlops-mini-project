@@ -1,0 +1,25 @@
+# git, envs and caches
+.git
+.gitignore
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+
+# data and experiment tracking (the image only needs models/model.joblib)
+data
+.dvc
+.dvcignore
+mlruns
+mlartifacts
+mlflow.db
+
+# not needed to serve predictions
+tests
+reports
+predictions
+k8s
+.github
+*.md
+Dockerfile
+.dockerignore

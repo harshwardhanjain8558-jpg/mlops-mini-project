@@ -4,3 +4,4 @@ data/raw/later.csv
 mlruns/
 mlartifacts/
 __pycache__/
+.pytest_cache/
