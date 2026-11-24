@@ -1,60 +1,53 @@
-import json
-import logging
-import sys
-from pathlib import Path
-from typing import Literal
+import os
+import time
+from contextlib import asynccontextmanager
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, ConfigDict, Field
 
-MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "model.joblib"
-FEATURES = ["distance_km", "wait_min", "passengers", "hour",
-            "luggage_bags", "fuel_price_rs", "booking", "zone"]
+from mp289.data import ROOT, clean_common, load_params
+from mp289.logs import get_logger
 
+log = get_logger("mp289.api")
+PARAMS = load_params()
+FEATURES = PARAMS["features"]
+MODEL_PATH = ROOT / os.getenv("MODEL_PATH", "models/model.joblib")
 
-class JsonFormatter(logging.Formatter):
-    def format(self, record):
-        d = {"ts": self.formatTime(record), "level": record.levelname,
-             "msg": record.getMessage()}
-        d.update(getattr(record, "data", {}))
-        return json.dumps(d)
+model = None  # set at startup (or by tests)
 
 
-logger = logging.getLogger("mp289")
-if not logger.handlers:
-    h = logging.StreamHandler(sys.stdout)
-    h.setFormatter(JsonFormatter())
-    logger.addHandler(h)
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
+class Ride(BaseModel):
+    """One ride request. Only fields known *before* the ride starts."""
+
+    model_config = ConfigDict(extra="forbid")  # exactly these fields, nothing else
+
+    distance_km: float = Field(..., ge=0)       # client rule 2: below 0 is a typo
+    wait_min: float
+    passengers: int
+    hour: int
+    luggage_bags: int
+    fuel_price_rs: float = Field(..., le=150)   # client rule 1: above 150 impossible
+    booking: str
+    zone: str
 
 
-class PredictRequest(BaseModel):
-    distance_km: float = Field(..., ge=0)
-    wait_min: float = Field(..., ge=0)
-    passengers: int = Field(..., ge=1)
-    hour: int = Field(..., ge=0, le=23)
-    luggage_bags: int = Field(..., ge=0)
-    fuel_price_rs: float = Field(..., le=150)
-    booking: Literal["street", "app", "stand"]
-    zone: Literal["Station Area", "Market", "Outskirts"]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model
+    if model is None and MODEL_PATH.exists():
+        model = joblib.load(MODEL_PATH)
+    log.info("startup", extra={"fields": {"model_loaded": model is not None}})
+    yield
 
 
-app = FastAPI(title="MP289 fare API")
-_model = None
-
-
-def get_model():
-    global _model
-    if _model is None:
-        _model = joblib.load(MODEL_PATH)
-    return _model
+app = FastAPI(title="MP289 auto-rickshaw fare", lifespan=lifespan)
 
 
 @app.get("/health")
 def health():
+<<<<<<< HEAD
     return {"status": "ok"}
 
 
@@ -64,3 +57,22 @@ def predict(req: PredictRequest):
     pred = float(get_model().predict(df)[0])
     logger.info("prediction", extra={"data": {**req.model_dump(), "prediction": pred}})
     return {"prediction": pred}
+=======
+    return {"status": "ok", "model_loaded": model is not None}
+
+
+@app.post("/predict")
+def predict(ride: Ride):
+    if model is None:
+        raise HTTPException(status_code=503, detail="model not loaded")
+    start = time.perf_counter()
+    df = clean_common(pd.DataFrame([ride.model_dump()]))
+    fare = round(float(model.predict(df[FEATURES])[0]), 2)
+    # ride features only: no rider name, phone or location is ever logged
+    log.info("prediction", extra={"fields": {
+        "input": ride.model_dump(),
+        "fare_rs": fare,
+        "latency_ms": round((time.perf_counter() - start) * 1000, 2),
+    }})
+    return {"fare_rs": fare}
+>>>>>>> d64e5da5147af8a8f9cbc7e1c6875b4cf82181c6

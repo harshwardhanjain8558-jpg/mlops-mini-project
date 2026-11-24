@@ -4,7 +4,7 @@ metadata:
   name: mp289-svc
 spec:
   selector:
-    app: mp289-api
+    app: mp289-api          # same label as the Deployment's Pods
   ports:
-    - port: 80
-      targetPort: 8000
+    - port: 80              # what clients call
+      targetPort: 8000      # the container port

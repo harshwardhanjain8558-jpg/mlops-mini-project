@@ -1,14 +1,30 @@
 on:
   push:
   pull_request:
-
+name: CI
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - run: pytest -q
+          cache: pip
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      # tests build their own small data, so no CSVs or model file are needed
+      - name: Run pytest
+        run: pytest -v
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t mp289-api:1.0 .
