@@ -47,17 +47,6 @@ app = FastAPI(title="MP289 auto-rickshaw fare", lifespan=lifespan)
 
 @app.get("/health")
 def health():
-<<<<<<< HEAD
-    return {"status": "ok"}
-
-
-@app.post("/predict")
-def predict(req: PredictRequest):
-    df = pd.DataFrame([req.model_dump()])[FEATURES]
-    pred = float(get_model().predict(df)[0])
-    logger.info("prediction", extra={"data": {**req.model_dump(), "prediction": pred}})
-    return {"prediction": pred}
-=======
     return {"status": "ok", "model_loaded": model is not None}
 
 
@@ -75,4 +64,3 @@ def predict(ride: Ride):
         "latency_ms": round((time.perf_counter() - start) * 1000, 2),
     }})
     return {"fare_rs": fare}
->>>>>>> d64e5da5147af8a8f9cbc7e1c6875b4cf82181c6
