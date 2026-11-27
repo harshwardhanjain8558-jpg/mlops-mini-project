@@ -9,3 +9,7 @@ unit_fix: {column: distance_km, zone: Outskirts, factor: 1000}
 mlflow:
   experiment: mp289-fare
   model_name: mp289-fare-model
+monitoring:
+  psi_bins: 10
+  retrain_fraction: 0.7
+  promotion_improvement: 0.12

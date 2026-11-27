@@ -39,22 +39,22 @@ tracking:
   experiment_name: mp289-fare
   best_run_id: 6dec3ed13de849be99248d2a38d33171        # the MLflow run id of your v1 model
   registered_model_name: mp289-fare-model
-  champion_version: 1
+  champion_version: 2
 
 monitoring:
-  psi:                     # cleaned train.csv vs later.csv, 10 bins
-    distance_km: null
-    wait_min: null
-    passengers: null
-    hour: null
-    luggage_bags: null
-    fuel_price_rs: null
-  most_drifted_feature: null
-  mae_by_group:            # v1 on later.csv, per value of zone
-    'Station Area': null
-    'Market': null
-    'Outskirts': null
-  worst_served_group: null
-  mae_v1_on_check: null    # v1 on the last 30% of later.csv (by date)
-  mae_v2_on_check: null    # v2 on the same rows
-  decision: null           # promote or keep
+  psi:
+    distance_km: 0.0253
+    wait_min: 0.0382
+    passengers: 0.0147
+    hour: 0.0579
+    luggage_bags: 0.0064
+    fuel_price_rs: 3.6475
+  most_drifted_feature: fuel_price_rs
+  mae_by_group:
+    Market: 109.19
+    Outskirts: 22.877
+    Station Area: 24.645
+  worst_served_group: Market
+  mae_v1_on_check: 41.18
+  mae_v2_on_check: 26.902
+  decision: promote
